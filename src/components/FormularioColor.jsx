@@ -1,60 +1,92 @@
-import ListaColor from "./ListaColor";
 import { Form, Button } from "react-bootstrap";
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2/dist/sweetalert2.all";
+import { useForm } from "react-hook-form";
+import { consultarAPI, crearColorAPI } from "./helpers/queries";
+import ListaColor from "./ListaColor";
 import { GiPaintBucket } from 'react-icons/gi';
 
-
-
 const FormularioColor = () => {
+  const [color, setColor] = useState([]);
 
-  const coloresLocalStorage = JSON.parse(localStorage.getItem('arregloColorKey')) || [];
+  useEffect(() => {
+    consultarAPI().then((respuesta) => {
+      setColor(respuesta);
+    });
+  }, []);
 
-  const [color, setColor] = useState("");
-  const [arregloColor, setArregloColor] = useState(coloresLocalStorage);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    defaultValues: {
+      nombreColor: "",
+    },
+  });
 
-useEffect(()=>{
-JSON.stringify(arregloColor)
-localStorage.setItem('arregloColorKey', JSON.stringify(arregloColor));
-},[arregloColor])
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-   
-    setArregloColor([...arregloColor, color]);
-
-    setColor('');
+  const onSubmit = (datos) => {
+    crearColorAPI(datos).then((respuesta) => {
+      if (respuesta.status === 201) {
+        Swal.fire(
+          "Tu color se ha creado",
+          "El color se agregó correctamente a la lista",
+          "success"
+        );
+        reset();
+        consultarAPI().then((respuesta) => {
+          setColor(respuesta);
+        });
+      } else {
+        Swal.fire("Ups algo pasó", "Vuelva a intentarlo más tarde", "error");
+      }
+    });
   };
-const borrarColor = (nombre) =>{
-  let arregloModificado = arregloColor.filter((item)=>(item !== nombre ))
 
-  setArregloColor(arregloModificado)
-}
   return (
-  <article >
-    <div className='d-inline-flex'>
+    <div>
+      <div className='d-inline-flex'>
     <h2 className="display-4 mx-1">
     < GiPaintBucket className="fs-1" color={color} onChange={updatedColor => setColor(updatedColor)}></GiPaintBucket></h2>
     <h1 className="display-4"> Administrar colores</h1> 
     <hr />
     </div>
-    <div>
-      <Form  onSubmit={handleSubmit}>
-        <Form.Group className="mb-3 d-flex" controlId="formBasicEmail">
-          <Form.Control
-            type="text"
-            placeholder="Ingrese un color ej Blue"
-            onChange={(e) => setColor(e.target.value)}
-            value={color}
-          />
-          <Button variant="primary" type="submit">
-            Enviar
-          </Button>
+
+      <Form onSubmit={handleSubmit(onSubmit)}>
+        <Form.Group
+          className="mb-3 row justify-content-center"
+          controlId="formBasicEmail"
+        >
+          <aside className="col-sm-12 col-md-8 col-lg-4">
+            <Form.Control
+              type="text"
+              placeholder="Agregá un color"
+              {...register("nombreColor", {
+                required: "Este dato es obligatorio",
+                minLength: {
+                  value: 3,
+                  message: "Debés ingresar como mínimo 3 caracteres",
+                },
+                maxLength: {
+                  value: 150,
+                  message: "Como máximo 150 caracteres",
+                },
+              })}
+            />
+            <Form.Text className="text-danger">
+            {errors.nombreColor?.message}
+          </Form.Text>
+          </aside>
+          <aside className="col-sm-12 col-md-4 col-lg-2">
+            <Button variant="primary" type="submit">
+              Enviar
+            </Button>
+          </aside>
         </Form.Group>
       </Form>
-
-      <ListaColor arregloColor={arregloColor} borrarColor={borrarColor} ></ListaColor>
+      <ListaColor color={color} setColor={setColor}></ListaColor>
     </div>
-    </article>
   );
 };
 

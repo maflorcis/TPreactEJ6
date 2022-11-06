@@ -7,3 +7,7 @@ Instalar react icons
 
 npm install react-bootstrap-icons --save
 npm i react-icons
+
+
+db json
+` http://localhost:3004/colores` 
